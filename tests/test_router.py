@@ -14,9 +14,7 @@ def test_greeting(text):
     assert route(text, OFFICES) is Intent.GREETING
 
 
-@pytest.mark.parametrize(
-    "text", ["tuition for 18 credits", "What is the FEE?", "Tuition?"]
-)
+@pytest.mark.parametrize("text", ["tuition for 18 credits", "What is the FEE?", "Tuition?"])
 def test_fee(text):
     assert route(text, OFFICES) is Intent.FEE
 
@@ -30,10 +28,7 @@ def test_office(text):
 
 
 def test_office_names_keep_original_case():
-    assert (
-        route("where is the library?", ("Library", "Student Affairs Office"))
-        is Intent.OFFICE
-    )
+    assert route("where is the library?", ("Library", "Student Affairs Office")) is Intent.OFFICE
 
 
 @pytest.mark.parametrize(
@@ -58,3 +53,8 @@ def test_empty_office_names():
 
 def test_never_returns_unknown():
     assert route("???", OFFICES) is Intent.RULE
+
+
+@pytest.mark.parametrize("text", ["help", "Help!", "what can you do?", "what can you help with"])
+def test_help(text):
+    assert route(text, OFFICES) is Intent.HELP

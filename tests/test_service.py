@@ -36,8 +36,8 @@ class FakeOffices:
 class FakeHandbook:
     rule = FakeRule(
         "H26-5.3",
-        "Thesis Registration",
-        "Students need at least 110 credits to register for a thesis.",
+        "Thesis registration",
+        "Students may register a thesis when they have at least 120 accumulated credits and a GPA of at least 2.0.",
     )
 
     def search(self, query: str) -> FakeRule | None:
@@ -49,8 +49,10 @@ class FakeHandbook:
 class FakeResponder:
     def __init__(self, fail: bool = False) -> None:
         self.fail = fail
+        self.calls = 0
 
     def explain(self, question: str, rule: FakeRule) -> str:
+        self.calls += 1
         if self.fail:
             raise ProviderError("provider unavailable")
         return f"{rule.title}: {rule.text}"
@@ -79,10 +81,20 @@ def test_greeting(service: AssistantService) -> None:
     assert response.degraded is False
 
 
+def test_help_lists_capabilities_without_calling_responder(
+    service: AssistantService,
+) -> None:
+    response = service.handle(Message(text="what can you do?"))
+
+    assert response.intent is Intent.HELP
+    assert "office locations" in response.answer
+    assert "tuition fees" in response.answer
+    assert response.degraded is False
+    assert service.responder.calls == 0
+
+
 def test_fee_characterization(service: AssistantService) -> None:
-    response = service.handle(
-        Message(text="tuition for 18 credits and 2 retake")
-    )
+    response = service.handle(Message(text="tuition for 18 credits and 2 retake"))
 
     assert response.intent is Intent.FEE
     assert response.answer == "Your tuition is 9,450,000 VND"
@@ -131,6 +143,6 @@ def test_provider_failure_uses_template_fallback() -> None:
     assert response.sources[0].id == "H26-5.3"
     assert response.degraded is True
     assert response.answer == (
-        "Thesis Registration: Students need at least 110 credits "
-        "to register for a thesis."
+        "Thesis registration: Students may register a thesis when they have at least "
+        "120 accumulated credits and a GPA of at least 2.0."
     )

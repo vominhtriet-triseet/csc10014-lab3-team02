@@ -35,25 +35,18 @@ class OfficeDirectory:
                 fieldnames = reader.fieldnames
                 if fieldnames is None:
                     raise DataError(f"CSV file has no header: {path}")
-                missing = [column for column in cls._REQUIRED_COLUMNS
-                           if column not in fieldnames]
+                missing = [column for column in cls._REQUIRED_COLUMNS if column not in fieldnames]
                 if missing:
-                    raise DataError(
-                        f"CSV file is missing required column(s) {missing}: {path}"
-                    )
+                    raise DataError(f"CSV file is missing required column(s) {missing}: {path}")
 
                 offices: list[Office] = []
                 for line_number, row in enumerate(reader, start=2):
                     # DictReader uses None for extra fields and for missing cells.
                     if None in row or any(row.get(col) is None for col in cls._REQUIRED_COLUMNS):
-                        raise DataError(
-                            f"Malformed CSV row at line {line_number}: {path}"
-                        )
+                        raise DataError(f"Malformed CSV row at line {line_number}: {path}")
                     values = {col: row[col].strip() for col in cls._REQUIRED_COLUMNS}
                     if any(not value for value in values.values()):
-                        raise DataError(
-                            f"Empty required value at line {line_number}: {path}"
-                        )
+                        raise DataError(f"Empty required value at line {line_number}: {path}")
                     offices.append(Office(**values))
                 return cls(offices)
         except OSError as exc:
@@ -72,8 +65,7 @@ class OfficeDirectory:
         if not needle:
             return None
         return next(
-            (office for office in self._offices
-             if needle in office.name.casefold()),
+            (office for office in self._offices if needle in office.name.casefold()),
             None,
         )
 
@@ -116,14 +108,9 @@ class Handbook:
             if not isinstance(item, dict):
                 raise DataError(f"Rule at index {index} must be an object: {path}")
             if not all(key in item for key in ("id", "title", "text")):
-                raise DataError(
-                    f"Rule at index {index} must contain id, title, and text: {path}"
-                )
-            if not all(isinstance(item[key], str) and item[key].strip()
-                       for key in ("id", "title", "text")):
-                raise DataError(
-                    f"Rule at index {index} has an empty or non-string field: {path}"
-                )
+                raise DataError(f"Rule at index {index} must contain id, title, and text: {path}")
+            if not all(isinstance(item[key], str) and item[key].strip() for key in ("id", "title", "text")):
+                raise DataError(f"Rule at index {index} has an empty or non-string field: {path}")
             rules.append(
                 Rule(
                     id=item["id"].strip(),
@@ -142,9 +129,7 @@ class Handbook:
         best_rule: Rule | None = None
         best_score = 0
         for rule in self._rules:
-            rule_terms = set(
-                re.findall(r"\w+", f"{rule.title} {rule.text}".casefold())
-            )
+            rule_terms = set(re.findall(r"\w+", f"{rule.title} {rule.text}".casefold()))
             score = len(terms & rule_terms)
             if score > best_score:
                 best_rule = rule

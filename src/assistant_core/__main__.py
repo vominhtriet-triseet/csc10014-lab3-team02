@@ -28,9 +28,7 @@ def build_service() -> AssistantService:
     elif settings.llm_provider == "template":
         responder = TemplateResponder()
     else:
-        raise ConfigError(
-            f"Unsupported LLM_PROVIDER: {settings.llm_provider!r}"
-        )
+        raise ConfigError(f"Unsupported LLM_PROVIDER: {settings.llm_provider!r}")
 
     return AssistantService(
         settings=settings,
