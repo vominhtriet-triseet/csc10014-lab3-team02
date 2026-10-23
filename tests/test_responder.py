@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import io
 import json
 import logging
+from dataclasses import dataclass
 
 import pytest
 
@@ -23,17 +23,20 @@ class DummyRule:
 def sample_rule() -> DummyRule:
     return DummyRule(
         id="H26-5.3",
-        title="Thesis Registration",
-        text="Students need at least 110 credits to register for a thesis.",
+        title="Thesis registration",
+        text=(
+            "Students may register a thesis when they have at least 120 accumulated credits "
+            "and a GPA of at least 2.0."
+        ),
     )
 
 
 def test_template_responder_deterministic(sample_rule: DummyRule) -> None:
     responder = TemplateResponder()
     result = responder.explain("thesis credits?", sample_rule)
-    assert (
-        result
-        == "Thesis Registration: Students need at least 110 credits to register for a thesis."
+    assert result == (
+        "Thesis registration: Students may register a thesis when they have at least 120 accumulated credits "
+        "and a GPA of at least 2.0."
     )
 
 
@@ -41,9 +44,9 @@ def test_stub_llm_responder_success_deterministic(sample_rule: DummyRule) -> Non
     responder = StubLLMResponder(fail=False)
     first = responder.explain("thesis credits?", sample_rule)
     second = responder.explain("thesis credits?", sample_rule)
-    assert (
-        first
-        == "Based on 'Thesis Registration': Students need at least 110 credits to register for a thesis."
+    assert first == (
+        "Based on 'Thesis registration': Students may register a thesis when they have at least 120 "
+        "accumulated credits and a GPA of at least 2.0."
     )
     assert first == second
 
@@ -88,9 +91,7 @@ def test_json_formatter_includes_extra_fields() -> None:
 
 def test_logging_does_not_leak_secrets_or_user_message() -> None:
     buffer = io.StringIO()
-    logger = setup_logging(
-        level="INFO", stream=buffer, logger_name="test_assistant_logger"
-    )
+    logger = setup_logging(level="INFO", stream=buffer, logger_name="test_assistant_logger")
 
     secret_key = "sk-test-2b7c1d9e4f0a"
     raw_user_question = "My secret question about tuition for 18 credits"

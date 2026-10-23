@@ -41,6 +41,11 @@ class AssistantService:
                 answer="Hello! I can help with offices, fees and rules.",
                 intent=intent,
             )
+        elif intent is Intent.HELP:
+            response = Response(
+                answer="I can help with greetings, office locations, tuition fees, and handbook rules.",
+                intent=intent,
+            )
         elif intent is Intent.FEE:
             response = self._handle_fee(msg.text)
         elif intent is Intent.OFFICE:

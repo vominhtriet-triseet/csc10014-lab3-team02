@@ -47,23 +47,23 @@ def test_office_directory_malformed_csv_raises_data_error(tmp_path, contents):
 def test_handbook_loads_and_searches_deterministically(tmp_path):
     path = tmp_path / "handbook.json"
     path.write_text(
-        json.dumps({"rules": [
-            {"id": "R1", "title": "Exam registration", "text": "Register before deadline"},
-            {"id": "R2", "title": "Tuition payment", "text": "Pay fees before deadline"},
-        ]}),
+        json.dumps(
+            {
+                "rules": [
+                    {"id": "R1", "title": "Exam registration", "text": "Register before deadline"},
+                    {"id": "R2", "title": "Tuition payment", "text": "Pay fees before deadline"},
+                ]
+            }
+        ),
         encoding="utf-8",
     )
 
     handbook = Handbook.from_json(path)
 
-    assert handbook.search("EXAM registration") == Rule(
-        "R1", "Exam registration", "Register before deadline"
-    )
+    assert handbook.search("EXAM registration") == Rule("R1", "Exam registration", "Register before deadline")
     assert handbook.search("unrelated words") is None
     # Both rules overlap on "deadline"; equal scores preserve file order.
-    assert handbook.search("deadline") == Rule(
-        "R1", "Exam registration", "Register before deadline"
-    )
+    assert handbook.search("deadline") == Rule("R1", "Exam registration", "Register before deadline")
     assert handbook.search("   ") is None
 
 
