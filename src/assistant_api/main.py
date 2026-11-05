@@ -1,10 +1,3 @@
-"""FastAPI application — Lab 4 STARTER.  Run:  uvicorn assistant_api.main:create_app --factory --reload
-
-Most of the file is given. Complete the four TODOs (T1–T4); the tests in tests/test_api.py tell you when you are done.
-
-Endpoints (v1): GET /health, POST /v1/chat, POST /v1/feedback, GET /v1/feedback (admin), GET /v1/weather
-"""
-
 from __future__ import annotations
 
 import uuid
@@ -61,27 +54,24 @@ def create_app(
         "/v1/chat",
         response_model=ChatResponse,
         tags=["chat"],
-        responses={422: {"model": ErrorResponse}, 429: {"model": ErrorResponse}},
+        responses={422: {"model": ErrorResponse}, 429: {"model": ErrorResponse}},   
     )
     def chat(req: ChatRequest, request: Request) -> ChatResponse:
-        # BONUS: rate limiting (see tutorial Part F). Leave it for later.
-        # TODO T1 (2 lines):
-        #   1. resp = service.handle(Message(text=req.message, session_id=req.session_id))
-        #   2. return ChatResponse(**resp.model_dump(), request_id=uuid.uuid4().hex[:12])
-        raise NotImplementedError("T1")
+        client = request.client.host if request.client else "unknown"
+        if not limiter.allow(client):
+            raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many requests")
+        resp = service.handle(Message(text=req.message, session_id=req.session_id))
+        return ChatResponse(**resp.model_dump(), request_id=uuid.uuid4().hex[:12])
 
     @app.post("/v1/feedback", response_model=FeedbackOut, status_code=201, tags=["feedback"])
     def add_feedback(fb: FeedbackIn) -> FeedbackOut:
-        # TODO T2 (3 lines):
-        #   1. item = FeedbackOut(**fb.model_dump(), id=len(feedback_store) + 1, created_at=datetime.now(timezone.utc))
-        #   2. add item to feedback_store
-        #   3. return item
-        raise NotImplementedError("T2")
+        item = FeedbackOut(**fb.model_dump(), id=len(feedback_store) + 1, created_at=datetime.now(timezone.utc))
+        feedback_store.append(item)
+        return item
 
     @app.get("/v1/feedback", response_model=list[FeedbackOut], tags=["feedback"], dependencies=[Depends(require_admin)])
     def list_feedback() -> list[FeedbackOut]:
-        # TODO T3 (1 line): return the list. The API-key check is already done by `require_admin` above.
-        raise NotImplementedError("T3")
+        return feedback_store
 
     @app.get("/v1/weather", response_model=Weather, tags=["external"], responses={503: {"model": ErrorResponse}})
     def campus_weather() -> Weather:
