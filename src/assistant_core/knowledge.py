@@ -59,6 +59,10 @@ class OfficeDirectory:
         """Office names in file order."""
         return tuple(office.name for office in self._offices)
 
+    def all(self) -> list[Office]:
+        """All offices as a list, sorted by name."""
+        return sorted(self._offices, key=lambda office: office.name)
+
     def find(self, text: str) -> Office | None:
         """Find the first office whose name contains text, case-insensitively."""
         needle = text.strip().casefold()
