@@ -54,7 +54,7 @@ def create_app(
         "/v1/chat",
         response_model=ChatResponse,
         tags=["chat"],
-        responses={422: {"model": ErrorResponse}, 429: {"model": ErrorResponse}},   
+        responses={422: {"model": ErrorResponse}, 429: {"model": ErrorResponse}},
     )
     def chat(req: ChatRequest, request: Request) -> ChatResponse:
         client = request.client.host if request.client else "unknown"
@@ -79,5 +79,9 @@ def create_app(
         #   If ExternalServiceError happens, raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE,
         #   "Weather service unavailable") from None
         raise NotImplementedError("T4")
+
+    @app.get("/v1/offices", tags=["knowledge"])
+    def list_offices() -> list[dict]:
+        return [o.__dict__ for o in service.offices.all()]
 
     return app
