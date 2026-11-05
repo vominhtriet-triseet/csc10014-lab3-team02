@@ -5,11 +5,11 @@ from __future__ import annotations
 import logging
 from time import perf_counter
 
-from assistant_core.config import Settings
-from assistant_core.errors import ProviderError
+from assistant_core.config import Settings, load_settings
+from assistant_core.errors import ConfigError, ProviderError
 from assistant_core.knowledge import Handbook, OfficeDirectory
 from assistant_core.models import Intent, Message, Response, Source
-from assistant_core.responder import Responder, TemplateResponder
+from assistant_core.responder import Responder, StubLLMResponder, TemplateResponder
 from assistant_core.router import route
 from assistant_core.tools import parse_credits, tuition
 
@@ -121,3 +121,19 @@ class AssistantService:
             )
 
         return Response(answer=answer, intent=Intent.RULE, sources=sources)
+
+
+def build_service(settings: Settings | None = None) -> AssistantService:
+    """Build the service from settings (read from the environment when not given)."""
+    settings = settings or load_settings()
+    offices = OfficeDirectory.from_csv(settings.data_dir / "offices.csv")
+    handbook = Handbook.from_json(settings.data_dir / "handbook.json")
+
+    if settings.llm_provider == "stub":
+        responder: Responder = StubLLMResponder()
+    elif settings.llm_provider == "template":
+        responder = TemplateResponder()
+    else:
+        raise ConfigError(f"Unsupported LLM_PROVIDER: {settings.llm_provider!r}")
+
+    return AssistantService(settings=settings, offices=offices, handbook=handbook, responder=responder)
