@@ -8,34 +8,17 @@ import sys
 from pydantic import ValidationError
 
 from assistant_core.config import load_settings
-from assistant_core.errors import AssistantError, ConfigError
-from assistant_core.knowledge import Handbook, OfficeDirectory
+from assistant_core.errors import AssistantError
 from assistant_core.logging_setup import setup_logging
 from assistant_core.models import Message
-from assistant_core.responder import StubLLMResponder, TemplateResponder
 from assistant_core.service import AssistantService
+from assistant_core.service import build_service as create_service
 
 
 def build_service() -> AssistantService:
     settings = load_settings()
     setup_logging(settings.log_level)
-
-    offices = OfficeDirectory.from_csv(settings.data_dir / "offices.csv")
-    handbook = Handbook.from_json(settings.data_dir / "handbook.json")
-
-    if settings.llm_provider == "stub":
-        responder = StubLLMResponder()
-    elif settings.llm_provider == "template":
-        responder = TemplateResponder()
-    else:
-        raise ConfigError(f"Unsupported LLM_PROVIDER: {settings.llm_provider!r}")
-
-    return AssistantService(
-        settings=settings,
-        offices=offices,
-        handbook=handbook,
-        responder=responder,
-    )
+    return create_service(settings)
 
 
 def main(argv: list[str] | None = None) -> int:
