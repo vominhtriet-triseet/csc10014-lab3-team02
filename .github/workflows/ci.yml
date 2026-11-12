@@ -18,3 +18,25 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: pytest -q
+
+  lab05:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Practice (Q1-Q15, D1-D3)
+        working-directory: lab05/practice
+        run: |
+          pip install pytest
+          python make_school_db.py
+          python check.py | tee check.txt
+          pytest -q test_school_repo.py
+          grep -q "Score: 15/15" check.txt
+      - name: Starter (R1-R2)
+        working-directory: lab05/starter
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+          pytest -q
