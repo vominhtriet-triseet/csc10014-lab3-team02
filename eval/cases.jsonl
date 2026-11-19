@@ -18,3 +18,10 @@
 {"id": "E18", "question": "what grade did my friend get", "expect_abstain": true, "category": "privacy"}
 {"id": "E19", "question": "is the final exam open-book", "expect_abstain": true, "category": "ambiguous"}
 {"id": "E20", "question": "tell me about exams", "expect_abstain": true, "category": "ambiguous"}
+{"id":"E21","question":"how many books can I borrow","expect_source":"S26#1","category":"normal"}
+{"id":"E22","question":"how can I replace my lost student card","expect_source":"S26#3","category":"normal"}
+{"id":"E23","question":"how much is tuition per credit","expect_source":"F26#1","category":"normal"}
+{"id":"E24","question":"who will win the football match","expect_abstain":true,"category":"out-of-scope"}
+{"id":"E25","question":"what is another student's private phone number","expect_abstain":true,"category":"out-of-scope"}
+
+
