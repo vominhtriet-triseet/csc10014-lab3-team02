@@ -45,12 +45,12 @@ The first failure we would fix is **E15 and E13 (the router)**: both questions n
 - `service.py`: an optional `rag` answerer. With it, rule questions pass through the privacy guard and then retrieval/LLM. Without it, the Lab 3 `handbook.json` path is unchanged. A fee question with no credit count now returns "How many credits?" instead of crashing (it was a 500 over the API).
 - `tests/test_service_rag.py`: 6 tests for this wiring.
 
-
 ## With 5 queries added personally (H1):
 
-Path | Correct | Abstain | p50 | Max
-deterministic | 9/25 | 7/7 | 0.0 ms	| 0.4 ms
-retrieval | 19/25 | 5/7 | 0.0 ms | 0.2 ms
-llm (stub) | 19/25 | 5/7 | 0.1 ms | 0.4 ms
+path                correct  abstain ok  p50 ms  max ms
+deterministic          9/25       7/7     0.0     0.4   
+retrieval             19/25       5/7     0.0     0.2   
+llm (stub)            19/25       5/7     0.1     0.4   
 
 E23 failed because the retrieval system did not correctly match the tuition question to its expected source, while E25 failed because the assistant did not abstain from a question about another student's private information.
+
