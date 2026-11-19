@@ -41,9 +41,7 @@ class LLM(Protocol):
 
 def build_prompt(question: str, hits: list[Hit], version: str = "answer_v1") -> str:
     template = (PROMPTS / f"{version}.txt").read_text(encoding="utf-8")
-    sources = "\n".join(
-        f"[{h.chunk.id}] {h.chunk.title}: {h.chunk.text}" for h in hits
-    )
+    sources = "\n".join(f"[{h.chunk.id}] {h.chunk.title}: {h.chunk.text}" for h in hits)
     return template.replace("{sources}", sources).replace("{question}", question)
 
 
@@ -58,13 +56,8 @@ def parse_draft(raw: str, allowed_ids: set[str]) -> AnswerDraft:
     except (json.JSONDecodeError, ValidationError) as exc:
         raise ProviderError(f"invalid structured output: {type(exc).__name__}") from exc
 
-    if not draft.abstain and (
-        not draft.source_ids
-        or not set(draft.source_ids) <= allowed_ids
-    ):
-        raise ProviderError(
-            "answer cites sources that were not retrieved"
-        )
+    if not draft.abstain and (not draft.source_ids or not set(draft.source_ids) <= allowed_ids):
+        raise ProviderError("answer cites sources that were not retrieved")
 
     return draft
 
