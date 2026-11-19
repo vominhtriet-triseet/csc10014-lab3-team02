@@ -26,4 +26,8 @@ class Response(BaseModel):
     answer: str
     intent: Intent
     sources: list[Source] = Field(default_factory=list)
-    degraded: bool = False
+    degraded: bool = False  # True when a fallback path was used
+    # Lab 6 - AI services
+    escalate: bool = False  # True when the assistant abstained and suggests a human
+    path: str = "deterministic"  # deterministic | retrieval | llm | tool | abstain
+    confidence: float | None = None
