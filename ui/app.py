@@ -65,6 +65,14 @@ for i, m in enumerate(st.session_state.messages):
                 "👎 Not helpful", key=f"down{i}", on_click=rate, args=(rid, -1, "Thanks — we will look at this answer.")
             )
 
+# ---- first screen: example questions in the main area (H1 fix) -------------------
+# On a phone the sidebar is collapsed, so users never saw the examples there.
+if len(st.session_state.messages) == 1:
+    st.caption("Not sure what to ask? Tap a question:")
+    for j, ex in enumerate(EXAMPLES):
+        if st.button(ex, key=f"example{j}", use_container_width=True):
+            st.session_state.pending = ex
+
 # ---- new question ----------------------------------------------------------------
 question = st.chat_input("Ask about fees, offices or the handbook…") or st.session_state.pop("pending", None)
 if question:
