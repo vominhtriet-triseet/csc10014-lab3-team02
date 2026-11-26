@@ -100,18 +100,20 @@ class Repository:
 
     def add_feedback(self, request_id: str, rating: int, comment: str | None) -> Feedback | None:
         with Session(self.engine) as db:
-            exists = db.exec(select(Interaction).where(Interaction.request_id == request_id)).first()
-            if exists is None:
-                return None          # the API turns this into 404
-            fb = Feedback(request_id=request_id, rating=rating, comment=comment)
-            db.add(fb)
+            found = db.exec(select(Interaction).where(Interaction.request_id == request_id)).first()
+            if found is None:
+                return None
+
+            feedback = Feedback(request_id=request_id, rating=rating, comment=comment)
+            db.add(feedback)
             db.commit()
-            db.refresh(fb)  # load the id the database just gave it
-            return fb
+            db.refresh(feedback)
+            return feedback
 
     def list_feedback(self, limit: int = 100) -> list[Feedback]:
         with Session(self.engine) as db:
-            return list(db.exec(select(Feedback).order_by(Feedback.created_at.desc()).limit(limit)))
+            statement = select(Feedback).order_by(Feedback.created_at.desc()).limit(limit)
+            return list(db.exec(statement))
 
     def intent_stats(self) -> list[dict]:
         """Requests, average latency and unresolved rate per intent."""
