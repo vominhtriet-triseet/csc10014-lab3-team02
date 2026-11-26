@@ -47,13 +47,11 @@ def test_validate_input():
     assert validate_input("hello") is None
 
 
-@pytest.mark.xfail(reason="L1: each member implements format_sources, then removes this mark", strict=False)
 def test_format_sources():
     assert format_sources([]) == ""
     assert format_sources(OK["sources"]) == "Sources: S26#1 — 1 Library borrowing"
 
 
-@pytest.mark.xfail(reason="L2: each member implements status_note, then removes this mark", strict=False)
 def test_status_note():
     assert "Training Office" in status_note(ChatResult(ok=True, escalate=True))
     assert status_note(ChatResult(ok=True)) is None
