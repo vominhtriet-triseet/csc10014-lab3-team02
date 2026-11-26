@@ -26,7 +26,17 @@ if "messages" not in st.session_state:
 if "rated" not in st.session_state:
     st.session_state.rated = set()
 
+
+def rate(rid: str, rating: int, thanks: str) -> None:
+    """Send a 👍/👎 rating once, then hide the buttons for that answer."""
+    client.send_feedback(rid, rating)
+    st.session_state.rated.add(rid)
+    st.toast(thanks)
+
+
 st.title("🎓 FIT Study Assistant")
+# shown in the main area too: on a phone the sidebar is collapsed and its note is hidden
+st.caption("This is an AI assistant. Check important decisions with the Training Office.")
 if not client.healthy():
     st.error("The assistant backend is not reachable. Start it with: uvicorn assistant_api.main:create_app --factory")
 
@@ -47,15 +57,21 @@ for i, m in enumerate(st.session_state.messages):
             st.info(m["note"])
         rid = m.get("request_id")
         if rid and rid not in st.session_state.rated:
-            c1, c2, _ = st.columns([1, 1, 6])
-            if c1.button("👍", key=f"up{i}"):
-                client.send_feedback(rid, 1)
-                st.session_state.rated.add(rid)
-                st.toast("Thanks for your feedback!")
-            if c2.button("👎", key=f"down{i}"):
-                client.send_feedback(rid, -1)
-                st.session_state.rated.add(rid)
-                st.toast("Thanks — we will look at this answer.")
+            c1, c2, _ = st.columns([2, 2, 3])
+            # on_click runs before the rerun, so the buttons are already hidden when the page is drawn again
+            # labels have words, not only emojis, so the meaning is clear (accessibility)
+            c1.button("👍 Helpful", key=f"up{i}", on_click=rate, args=(rid, 1, "Thanks for your feedback!"))
+            c2.button(
+                "👎 Not helpful", key=f"down{i}", on_click=rate, args=(rid, -1, "Thanks — we will look at this answer.")
+            )
+
+# ---- first screen: example questions in the main area (H1 fix) -------------------
+# On a phone the sidebar is collapsed, so users never saw the examples there.
+if len(st.session_state.messages) == 1:
+    st.caption("Not sure what to ask? Tap a question:")
+    for j, ex in enumerate(EXAMPLES):
+        if st.button(ex, key=f"example{j}", use_container_width=True):
+            st.session_state.pending = ex
 
 # ---- new question ----------------------------------------------------------------
 question = st.chat_input("Ask about fees, offices or the handbook…") or st.session_state.pop("pending", None)
