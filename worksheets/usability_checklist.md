@@ -19,4 +19,5 @@
 
 ## Hallway test
 
-Tester: ____ (another team) — What surprised them: ____
+Tester: Quang (team 7) — What surprised them: he typed "học phí bao nhiêu" in Vietnamese and expected an answer,
+but the assistant said it was not confident; he did not know the assistant only understands English.
