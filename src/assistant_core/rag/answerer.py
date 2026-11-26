@@ -40,13 +40,7 @@ class RagAnswerer:
     def answer(self, question: str) -> Response:
         hits = self.index.search(question, self.k)
         if not hits or hits[0].score < self.min_score:
-            return Response(
-                answer=ESCALATE_MSG,
-                intent=Intent.UNKNOWN,
-                path="abstain",
-                escalate=True,
-                confidence=0.0
-            )
+            return Response(answer=ESCALATE_MSG, intent=Intent.UNKNOWN, path="abstain", escalate=True, confidence=0.0)
         if not hits:
             raise NotImplementedError("A1 — also handle the low-score case")
         sources = {h.chunk.id: Source(id=h.chunk.id, title=h.chunk.title) for h in hits}

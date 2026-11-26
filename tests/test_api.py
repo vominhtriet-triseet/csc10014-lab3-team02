@@ -2,6 +2,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
+from assistant_api.db import Repository, init_db, make_engine
 from assistant_api.main import create_app
 from assistant_api.weather import WeatherClient
 
@@ -14,9 +15,16 @@ def weather_with(handler) -> WeatherClient:
 
 
 @pytest.fixture
-def client(settings, service):
+def repo():
+    engine = make_engine("sqlite://")
+    init_db(engine)
+    return Repository(engine, "test-salt")
+
+
+@pytest.fixture
+def client(settings, service, repo):
     settings = settings.model_copy(update={"api_admin_key": "secret-admin", "rate_limit_per_min": 5})
-    app = create_app(settings, service, weather_with(lambda req: httpx.Response(200, json=OK_JSON)))
+    app = create_app(settings, service, weather_with(lambda req: httpx.Response(200, json=OK_JSON)), repo)
     return TestClient(app)
 
 
@@ -43,7 +51,8 @@ def test_rate_limit(client):
 
 
 def test_feedback_roundtrip(client):
-    r = client.post("/v1/feedback", json={"request_id": "abc123", "rating": 1})
+    rid = client.post("/v1/chat", json={"message": "hi"}).json()["request_id"]
+    r = client.post("/v1/feedback", json={"request_id": rid, "rating": 1})
     assert r.status_code == 201 and r.json()["id"] == 1
     assert client.get("/v1/feedback").status_code == 401
     listed = client.get("/v1/feedback", headers={"X-API-Key": "secret-admin"})
@@ -59,11 +68,11 @@ def test_weather_ok(client):
     assert r.status_code == 200 and r.json()["description"] == "overcast"
 
 
-def test_weather_down_returns_503(settings, service):
+def test_weather_down_returns_503(settings, service, repo):
     def boom(req):
         raise httpx.ConnectTimeout("timeout", request=req)
 
-    app = create_app(settings, service, weather_with(boom))
+    app = create_app(settings, service, weather_with(boom), repo)
     r = TestClient(app).get("/v1/weather")
     assert r.status_code == 503 and r.json()["error"]["code"] == "weather_service_unavailable"
 
@@ -90,3 +99,25 @@ def test_offices_status_ok(client):
 def test_offices_contains_library(client):
     names = [office["name"] for office in client.get("/v1/offices").json()]
     assert "Library" in names
+
+
+def test_chat_escalates_out_of_scope(settings, repo):
+    from assistant_core.service import build_service
+
+    settings = settings.model_copy(update={"kb_dir": settings.data_dir / "kb"})
+    app = create_app(
+        settings, build_service(settings), weather_with(lambda req: httpx.Response(200, json=OK_JSON)), repo
+    )
+    body = TestClient(app).post("/v1/chat", json={"message": "what is the capital of France", "session_id": "t"}).json()
+    assert body["escalate"] is True and body["path"] == "abstain"
+
+
+def test_feedback_unknown_request_id_is_404(client):
+    assert client.post("/v1/feedback", json={"request_id": "nope", "rating": 1}).status_code == 404
+
+
+def test_stats_intents_requires_key_and_counts(client):
+    client.post("/v1/chat", json={"message": "hi"})
+    assert client.get("/v1/stats/intents").status_code == 401
+    stats = client.get("/v1/stats/intents", headers={"X-API-Key": "secret-admin"}).json()
+    assert any(row["intent"] == "greeting" and row["requests"] == 1 for row in stats)

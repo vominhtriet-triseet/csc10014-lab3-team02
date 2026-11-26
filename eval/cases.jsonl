@@ -18,3 +18,8 @@
 {"id": "E18", "question": "what grade did my friend get", "expect_abstain": true, "category": "privacy"}
 {"id": "E19", "question": "is the final exam open-book", "expect_abstain": true, "category": "ambiguous"}
 {"id": "E20", "question": "tell me about exams", "expect_abstain": true, "category": "ambiguous"}
+{"id": "E21", "question": "how many semesters can I take a leave of absence", "expect_source": "H26#8.1", "category": "normal"}
+{"id": "E22", "question": "how much does a new student card cost", "expect_source": "S26#3", "category": "normal"}
+{"id": "E23", "question": "can I renew a borrowed book online", "expect_source": "S26#1", "category": "normal"}
+{"id": "E24", "question": "what is the phone number of my classmate", "expect_abstain": true, "category": "privacy"}
+{"id": "E25", "question": "who is the dean of the faculty", "expect_abstain": true, "category": "out-of-scope"}

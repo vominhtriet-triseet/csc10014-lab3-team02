@@ -50,14 +50,15 @@ def parse_draft(raw: str, allowed_ids: set[str]) -> AnswerDraft:
     m = re.search(r"\{.*\}", raw, flags=re.S)  # tolerate text around the JSON
     if not m:
         raise ProviderError("no JSON object in model output")
+
     try:
         draft = AnswerDraft.model_validate(json.loads(m.group(0)))
     except (json.JSONDecodeError, ValidationError) as exc:
         raise ProviderError(f"invalid structured output: {type(exc).__name__}") from exc
-    # TODO A2 (2 lines) — the grounding check: if the draft does NOT abstain and either
-    #   (a) draft.source_ids is empty, or (b) it contains an id that is not in allowed_ids,
-    #   raise ProviderError("answer cites sources that were not retrieved").
-    #   Hint: set(draft.source_ids) <= allowed_ids means "all ids are allowed".
+
+    if not draft.abstain and (not draft.source_ids or not set(draft.source_ids) <= allowed_ids):
+        raise ProviderError("answer cites sources that were not retrieved")
+
     return draft
 
 
@@ -72,12 +73,24 @@ class StubLLM:
     def complete(self, prompt: str) -> str:
         if self.fail:
             raise ProviderError("stub provider unavailable")
+
         if self.garbage:
             return "Sure! Here is a great answer without any JSON."
+
         m = re.search(r"^\[([^\]]+)\] ([^:]+): (.+)$", prompt, flags=re.M)
+
         if not m:
-            return json.dumps({"answer": "", "source_ids": [], "confidence": 0.0, "abstain": True})
+            return json.dumps(
+                {
+                    "answer": "",
+                    "source_ids": [],
+                    "confidence": 0.0,
+                    "abstain": True,
+                }
+            )
+
         first_sentence = re.split(r"(?<=\.)\s", m.group(3))[0]
+
         return json.dumps(
             {
                 "answer": f"According to {m.group(2)}: {first_sentence}",
@@ -91,7 +104,12 @@ class StubLLM:
 class OllamaLLM:
     name = "ollama"
 
-    def __init__(self, model: str = "llama3.2", base_url: str = "http://localhost:11434", timeout_s: float = 30):
+    def __init__(
+        self,
+        model: str = "llama3.2",
+        base_url: str = "http://localhost:11434",
+        timeout_s: float = 30,
+    ):
         self.model, self.base_url = model, base_url.rstrip("/")
         self._http = httpx.Client(timeout=timeout_s)
 
@@ -116,9 +134,18 @@ class OllamaLLM:
 class OpenAICompatibleLLM:
     name = "openai"
 
-    def __init__(self, api_key: str, model: str, base_url: str = "https://api.openai.com/v1", timeout_s: float = 20):
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        base_url: str = "https://api.openai.com/v1",
+        timeout_s: float = 20,
+    ):
         self.model, self.base_url = model, base_url.rstrip("/")
-        self._http = httpx.Client(timeout=timeout_s, headers={"Authorization": f"Bearer {api_key}"})
+        self._http = httpx.Client(
+            timeout=timeout_s,
+            headers={"Authorization": f"Bearer {api_key}"},
+        )
 
     def complete(self, prompt: str) -> str:
         try:
@@ -137,13 +164,32 @@ class OpenAICompatibleLLM:
             raise ProviderError(f"provider failed: {type(exc).__name__}") from exc
 
 
-def make_llm(provider: str, model: str, base_url: str | None, api_key: str | None, timeout_s: float) -> LLM:
+def make_llm(
+    provider: str,
+    model: str,
+    base_url: str | None,
+    api_key: str | None,
+    timeout_s: float,
+) -> LLM:
     if provider == "stub":
         return StubLLM()
+
     if provider == "ollama":
-        return OllamaLLM(model, base_url or "http://localhost:11434", timeout_s)
+        return OllamaLLM(
+            model,
+            base_url or "http://localhost:11434",
+            timeout_s,
+        )
+
     if provider == "openai":
         if not api_key:
             raise ProviderError("LLM_API_KEY required for provider 'openai'")
-        return OpenAICompatibleLLM(api_key, model, base_url or "https://api.openai.com/v1", timeout_s)
+
+        return OpenAICompatibleLLM(
+            api_key,
+            model,
+            base_url or "https://api.openai.com/v1",
+            timeout_s,
+        )
+
     raise ProviderError(f"unknown LLM provider {provider!r}")

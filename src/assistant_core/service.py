@@ -6,9 +6,14 @@ import logging
 from time import perf_counter
 
 from assistant_core.config import Settings, load_settings
-from assistant_core.errors import ConfigError, ProviderError
+from assistant_core.errors import InvalidRequest, ProviderError
+from assistant_core.guard import PRIVATE_REPLY, is_private_request
 from assistant_core.knowledge import Handbook, OfficeDirectory
+from assistant_core.llm import make_llm
 from assistant_core.models import Intent, Message, Response, Source
+from assistant_core.rag.answerer import RagAnswerer
+from assistant_core.rag.chunker import load_folder
+from assistant_core.rag.index import make_index
 from assistant_core.responder import Responder, StubLLMResponder, TemplateResponder
 from assistant_core.router import route
 from assistant_core.tools import parse_credits, tuition
@@ -25,12 +30,14 @@ class AssistantService:
         offices: OfficeDirectory,
         handbook: Handbook,
         responder: Responder,
+        rag: RagAnswerer | None = None,
     ) -> None:
         self.settings = settings
         self.offices = offices
         self.handbook = handbook
         self.responder = responder
         self.fallback = TemplateResponder()
+        self.rag = rag  # None = old handbook.json path (Lab 3); set = Lab 6 retrieval/LLM path
 
     def handle(self, msg: Message) -> Response:
         started = perf_counter()
@@ -65,14 +72,17 @@ class AssistantService:
         return response
 
     def _handle_fee(self, text: str) -> Response:
-        credits, retake = parse_credits(text)
-        amount = tuition(
-            credits=credits,
-            retake=retake,
-            rate=self.settings.credit_rate_vnd,
-            retake_multiplier=self.settings.retake_multiplier,
-            max_credits=self.settings.max_credits,
-        )
+        try:
+            credits, retake = parse_credits(text)
+            amount = tuition(
+                credits=credits,
+                retake=retake,
+                rate=self.settings.credit_rate_vnd,
+                retake_multiplier=self.settings.retake_multiplier,
+                max_credits=self.settings.max_credits,
+            )
+        except InvalidRequest as exc:  # e.g. "when is tuition due" has no credit count
+            return Response(answer=str(exc), intent=Intent.FEE)
         return Response(
             answer=f"Your tuition is {amount:,} VND",
             intent=Intent.FEE,
@@ -97,6 +107,10 @@ class AssistantService:
         )
 
     def _handle_rule(self, text: str) -> Response:
+        if self.rag is not None:  # Lab 6: guard first, then retrieval + LLM with abstain
+            if is_private_request(text):
+                return Response(answer=PRIVATE_REPLY, intent=Intent.UNKNOWN, path="abstain")
+            return self.rag.answer(text)
         rule = self.handbook.search(text)
         if rule is None:
             return Response(
@@ -129,11 +143,23 @@ def build_service(settings: Settings | None = None) -> AssistantService:
     offices = OfficeDirectory.from_csv(settings.data_dir / "offices.csv")
     handbook = Handbook.from_json(settings.data_dir / "handbook.json")
 
-    if settings.llm_provider == "stub":
-        responder: Responder = StubLLMResponder()
-    elif settings.llm_provider == "template":
-        responder = TemplateResponder()
-    else:
-        raise ConfigError(f"Unsupported LLM_PROVIDER: {settings.llm_provider!r}")
+    # ollama/openai are used by the RAG path below; the old responder falls back to the template
+    responder: Responder = StubLLMResponder() if settings.llm_provider == "stub" else TemplateResponder()
 
-    return AssistantService(settings=settings, offices=offices, handbook=handbook, responder=responder)
+    rag = None
+    if settings.kb_dir.exists():
+        index = make_index(settings.retrieval_kind, load_folder(settings.kb_dir))
+        llm = (
+            None
+            if settings.llm_provider == "template"
+            else make_llm(
+                settings.llm_provider,
+                settings.llm_model,
+                settings.llm_base_url,
+                settings.llm_api_key,
+                settings.llm_timeout_s,
+            )
+        )
+        rag = RagAnswerer(index, llm, settings.retrieval_min_score, prompt_version=settings.prompt_version)
+
+    return AssistantService(settings=settings, offices=offices, handbook=handbook, responder=responder, rag=rag)
