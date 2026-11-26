@@ -35,6 +35,8 @@ def rate(rid: str, rating: int, thanks: str) -> None:
 
 
 st.title("🎓 FIT Study Assistant")
+# shown in the main area too: on a phone the sidebar is collapsed and its note is hidden
+st.caption("This is an AI assistant. Check important decisions with the Training Office.")
 if not client.healthy():
     st.error("The assistant backend is not reachable. Start it with: uvicorn assistant_api.main:create_app --factory")
 
@@ -55,10 +57,13 @@ for i, m in enumerate(st.session_state.messages):
             st.info(m["note"])
         rid = m.get("request_id")
         if rid and rid not in st.session_state.rated:
-            c1, c2, _ = st.columns([1, 1, 6])
+            c1, c2, _ = st.columns([2, 2, 3])
             # on_click runs before the rerun, so the buttons are already hidden when the page is drawn again
-            c1.button("👍", key=f"up{i}", on_click=rate, args=(rid, 1, "Thanks for your feedback!"))
-            c2.button("👎", key=f"down{i}", on_click=rate, args=(rid, -1, "Thanks — we will look at this answer."))
+            # labels have words, not only emojis, so the meaning is clear (accessibility)
+            c1.button("👍 Helpful", key=f"up{i}", on_click=rate, args=(rid, 1, "Thanks for your feedback!"))
+            c2.button(
+                "👎 Not helpful", key=f"down{i}", on_click=rate, args=(rid, -1, "Thanks — we will look at this answer.")
+            )
 
 # ---- new question ----------------------------------------------------------------
 question = st.chat_input("Ask about fees, offices or the handbook…") or st.session_state.pop("pending", None)
