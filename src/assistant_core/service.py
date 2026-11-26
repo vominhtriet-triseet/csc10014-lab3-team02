@@ -6,11 +6,14 @@ import logging
 from time import perf_counter
 
 from assistant_core.config import Settings, load_settings
-from assistant_core.errors import ConfigError, InvalidRequest, ProviderError
+from assistant_core.errors import InvalidRequest, ProviderError
 from assistant_core.guard import PRIVATE_REPLY, is_private_request
 from assistant_core.knowledge import Handbook, OfficeDirectory
+from assistant_core.llm import make_llm
 from assistant_core.models import Intent, Message, Response, Source
 from assistant_core.rag.answerer import RagAnswerer
+from assistant_core.rag.chunker import load_folder
+from assistant_core.rag.index import make_index
 from assistant_core.responder import Responder, StubLLMResponder, TemplateResponder
 from assistant_core.router import route
 from assistant_core.tools import parse_credits, tuition
@@ -140,11 +143,23 @@ def build_service(settings: Settings | None = None) -> AssistantService:
     offices = OfficeDirectory.from_csv(settings.data_dir / "offices.csv")
     handbook = Handbook.from_json(settings.data_dir / "handbook.json")
 
-    if settings.llm_provider == "stub":
-        responder: Responder = StubLLMResponder()
-    elif settings.llm_provider == "template":
-        responder = TemplateResponder()
-    else:
-        raise ConfigError(f"Unsupported LLM_PROVIDER: {settings.llm_provider!r}")
+    # ollama/openai are used by the RAG path below; the old responder falls back to the template
+    responder: Responder = StubLLMResponder() if settings.llm_provider == "stub" else TemplateResponder()
 
-    return AssistantService(settings=settings, offices=offices, handbook=handbook, responder=responder)
+    rag = None
+    if settings.kb_dir.exists():
+        index = make_index(settings.retrieval_kind, load_folder(settings.kb_dir))
+        llm = (
+            None
+            if settings.llm_provider == "template"
+            else make_llm(
+                settings.llm_provider,
+                settings.llm_model,
+                settings.llm_base_url,
+                settings.llm_api_key,
+                settings.llm_timeout_s,
+            )
+        )
+        rag = RagAnswerer(index, llm, settings.retrieval_min_score, prompt_version=settings.prompt_version)
+
+    return AssistantService(settings=settings, offices=offices, handbook=handbook, responder=responder, rag=rag)
