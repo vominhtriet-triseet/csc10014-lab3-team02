@@ -9,3 +9,5 @@ pytest==9.1.1; python_version >= "3.14"
 ruff==0.6.9
 sqlmodel==0.0.22; python_version < "3.14"
 sqlmodel==0.0.40; python_version >= "3.14"
+# Streamlit 1.39 has no wheels for Python 3.14+ (pandas<3); use Python 3.12 to run the UI
+streamlit==1.39.0; python_version < "3.14"
