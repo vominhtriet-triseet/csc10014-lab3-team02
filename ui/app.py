@@ -26,6 +26,14 @@ if "messages" not in st.session_state:
 if "rated" not in st.session_state:
     st.session_state.rated = set()
 
+
+def rate(rid: str, rating: int, thanks: str) -> None:
+    """Send a 👍/👎 rating once, then hide the buttons for that answer."""
+    client.send_feedback(rid, rating)
+    st.session_state.rated.add(rid)
+    st.toast(thanks)
+
+
 st.title("🎓 FIT Study Assistant")
 if not client.healthy():
     st.error("The assistant backend is not reachable. Start it with: uvicorn assistant_api.main:create_app --factory")
@@ -48,14 +56,9 @@ for i, m in enumerate(st.session_state.messages):
         rid = m.get("request_id")
         if rid and rid not in st.session_state.rated:
             c1, c2, _ = st.columns([1, 1, 6])
-            if c1.button("👍", key=f"up{i}"):
-                client.send_feedback(rid, 1)
-                st.session_state.rated.add(rid)
-                st.toast("Thanks for your feedback!")
-            if c2.button("👎", key=f"down{i}"):
-                client.send_feedback(rid, -1)
-                st.session_state.rated.add(rid)
-                st.toast("Thanks — we will look at this answer.")
+            # on_click runs before the rerun, so the buttons are already hidden when the page is drawn again
+            c1.button("👍", key=f"up{i}", on_click=rate, args=(rid, 1, "Thanks for your feedback!"))
+            c2.button("👎", key=f"down{i}", on_click=rate, args=(rid, -1, "Thanks — we will look at this answer."))
 
 # ---- new question ----------------------------------------------------------------
 question = st.chat_input("Ask about fees, offices or the handbook…") or st.session_state.pop("pending", None)
