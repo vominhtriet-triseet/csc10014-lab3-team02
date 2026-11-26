@@ -31,17 +31,14 @@ def format_sources(sources: list[dict]) -> str:
     if not sources:
         return ""
 
-    return "Sources: " + "; ".join(
-        f"{s['id']} — {s['title']}" for s in sources
-    )
+    return "Sources: " + "; ".join(f"{s['id']} — {s['title']}" for s in sources)
 
 
 def status_note(result: ChatResult) -> str | None:
     """A short note shown under the answer, explaining special situations."""
     if result.escalate:
         return (
-            "I could not find this in the official documents. "
-            "A staff member can help: Training Office, room I.101."
+            "I could not find this in the official documents. " "A staff member can help: Training Office, room I.101."
         )
     elif result.degraded:
         return "Shown directly from the source document (the AI helper was unavailable)."

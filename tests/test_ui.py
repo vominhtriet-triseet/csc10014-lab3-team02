@@ -1,5 +1,4 @@
 import httpx
-import pytest
 
 from ui.api_client import AssistantClient, ChatResult
 from ui.logic import format_sources, status_note, validate_input
