@@ -11,5 +11,5 @@ Rule: do not help or explain. Watch and write down what happens.
 | 2 | Asked "I only have 118 credits, can I start thesis?" and read the answer twice | A direct "No, you need 120 credits" | The answer only quotes the rule ("at least 120 accumulated credits…"); the user has to compare 118 with 120 alone | Let the answer compare the number in the question with the rule and start with "No" / "Yes" |
 | 3 | Opened the page in a phone-width window and looked for what to ask | A list of example questions on the first screen | The examples are in the sidebar, which is collapsed on a phone, so the first screen shows only one example inside the welcome text | Show the example questions in the main area on the first screen |
 
-The one change we made (commit link): observation 3 — example questions are shown in the main area on the first screen (`ui/app.py`); commit link: see the PR of branch `feature/ui-vominhtriet-triseet`
+The one change we made (commit link): observation 3 — example questions are shown in the main area on the first screen (`ui/app.py`); https://github.com/vominhtriet-triseet/csc10014-lab3-team02/commit/ee8a10f8b9c6774f98ee21061abebfbfbb0020ac
 Before / after screenshot: attached in the PR description (phone width, 375 px)
